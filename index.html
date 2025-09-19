@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Công cụ tính phí luật sư</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg space-y-6 transform transition-all hover:scale-105 duration-300">
+        <div class="text-center">
+            <h1 class="text-3xl font-bold text-gray-800">Tính Phí Luật Sư</h1>
+            <p class="text-gray-500 mt-2">Tính phí thù lao và tiền cọc theo hợp đồng.</p>
+        </div>
+
+        <div>
+            <label for="contractValue" class="block text-sm font-medium text-gray-700 mb-1">Tổng giá trị hợp đồng sau thuế (VND)</label>
+            <input type="number" id="contractValue" placeholder="Nhập giá trị hợp đồng..." class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 transition-colors duration-200">
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label for="ownerName" class="block text-sm font-medium text-gray-700 mb-1">Họ tên Chủ Sở Hữu</label>
+                <input type="text" id="ownerName" placeholder="Nhập họ tên..." class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 transition-colors duration-200">
+            </div>
+            <div>
+                <label for="contractId" class="block text-sm font-medium text-gray-700 mb-1">Mã hợp đồng</label>
+                <input type="text" id="contractId" placeholder="Nhập mã hợp đồng..." class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 transition-colors duration-200">
+            </div>
+            <div>
+                <label for="apartmentId" class="block text-sm font-medium text-gray-700 mb-1">Mã căn</label>
+                <input type="text" id="apartmentId" placeholder="Nhập mã căn..." class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 transition-colors duration-200">
+            </div>
+            <div>
+                <label for="contactPhone" class="block text-sm font-medium text-gray-700 mb-1">Số điện thoại liên hệ</label>
+                <input type="tel" id="contactPhone" placeholder="Nhập số điện thoại..." class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:ring-sky-500 focus:border-sky-500 transition-colors duration-200">
+            </div>
+        </div>
+
+        <button id="calculateBtn" class="w-full bg-sky-600 text-white font-semibold py-3 rounded-md shadow-lg hover:bg-sky-700 transition-transform transform hover:scale-105 duration-200">
+            Tính toán
+        </button>
+
+        <div id="results" class="hidden space-y-4">
+            <div class="bg-sky-100 p-4 rounded-md border border-sky-200 shadow-inner">
+                <p class="text-sm font-medium text-sky-700">Phí thù lao luật sư (15%):</p>
+                <p id="lawyerFee" class="text-xl font-bold text-sky-900 mt-1"></p>
+            </div>
+
+            <div class="bg-gray-100 p-4 rounded-md border border-gray-200 shadow-inner">
+                <p class="text-sm font-medium text-gray-700">Tổng tiền cọc (4% của phí thù lao):</p>
+                <p id="totalDeposit" class="text-xl font-bold text-gray-900 mt-1"></p>
+            </div>
+
+            <div class="bg-gray-100 p-4 rounded-md border border-gray-200 shadow-inner">
+                <p class="text-sm font-medium text-gray-700">Số tiền cọc chia làm 3 lần:</p>
+                <ul id="depositInstallments" class="list-disc list-inside space-y-1 mt-2 text-lg font-bold text-gray-900"></ul>
+            </div>
+            
+            <button id="generateEmailBtn" class="w-full bg-indigo-600 text-white font-semibold py-3 rounded-md shadow-lg hover:bg-indigo-700 transition-transform transform hover:scale-105 duration-200 flex items-center justify-center space-x-2">
+                <span>✨ Soạn Email Thanh Toán</span>
+            </button>
+        </div>
+
+        <div id="emailSection" class="hidden space-y-4">
+            <div class="bg-gray-200 p-4 rounded-md border border-gray-300 shadow-inner">
+                <p class="text-sm font-medium text-gray-700">Bản nháp email:</p>
+                <pre id="emailDraft" class="mt-2 p-2 bg-gray-50 border border-gray-300 rounded-md text-gray-800 text-sm whitespace-pre-wrap"></pre>
+                <button id="copyEmailBtn" class="mt-4 w-full bg-green-600 text-white font-semibold py-2 rounded-md hover:bg-green-700 transition-colors duration-200">
+                    Sao chép Email
+                </button>
+            </div>
+        </div>
+
+        <!-- Message Box -->
+        <div id="messageBox" class="hidden mt-4 p-4 text-center rounded-md text-sm transition-all duration-300"></div>
+
+    </div>
+
+    <script>
+        // Get all necessary elements from the DOM
+        const contractInput = document.getElementById('contractValue');
+        const ownerNameInput = document.getElementById('ownerName');
+        const contractIdInput = document.getElementById('contractId');
+        const apartmentIdInput = document.getElementById('apartmentId');
+        const contactPhoneInput = document.getElementById('contactPhone');
+        const calculateBtn = document.getElementById('calculateBtn');
+        const resultsDiv = document.getElementById('results');
+        const lawyerFeeSpan = document.getElementById('lawyerFee');
+        const totalDepositSpan = document.getElementById('totalDeposit');
+        const installmentsList = document.getElementById('depositInstallments');
+        const messageBox = document.getElementById('messageBox');
+        const generateEmailBtn = document.getElementById('generateEmailBtn');
+        const emailSection = document.getElementById('emailSection');
+        const emailDraft = document.getElementById('emailDraft');
+        const copyEmailBtn = document.getElementById('copyEmailBtn');
+
+        // Function to format a number as Vietnamese Dong (VND)
+        const formatVND = (amount) => {
+            return new Intl.NumberFormat('vi-VN', {
+                style: 'currency',
+                currency: 'VND'
+            }).format(amount);
+        };
+
+        // Function to show a message to the user
+        const showMessage = (text, type = 'error') => {
+            messageBox.textContent = text;
+            messageBox.classList.remove('hidden', 'bg-red-100', 'text-red-700', 'bg-green-100', 'text-green-700', 'bg-yellow-100', 'text-yellow-700');
+            if (type === 'error') {
+                messageBox.classList.add('bg-red-100', 'text-red-700');
+            } else if (type === 'success') {
+                messageBox.classList.add('bg-green-100', 'text-green-700');
+            } else if (type === 'loading') {
+                 messageBox.classList.add('bg-yellow-100', 'text-yellow-700');
+            }
+        };
+
+        // Main calculation function
+        const calculateFees = () => {
+            const contractValue = parseFloat(contractInput.value);
+
+            // Hide previous results and messages
+            resultsDiv.classList.add('hidden');
+            emailSection.classList.add('hidden');
+            messageBox.classList.add('hidden');
+            installmentsList.innerHTML = '';
+
+            // Input validation
+            if (isNaN(contractValue) || contractValue <= 0) {
+                showMessage('Vui lòng nhập giá trị hợp đồng hợp lệ.', 'error');
+                return;
+            }
+
+            // Calculations based on the rules
+            const lawyerFee = contractValue * 0.15;
+            const totalDeposit = lawyerFee * 0.04;
+            const depositPerInstallment = totalDeposit / 3;
+
+            // Display results
+            lawyerFeeSpan.textContent = formatVND(lawyerFee);
+            totalDepositSpan.textContent = formatVND(totalDeposit);
+
+            // Create and display the list items with specific details
+            const li1 = document.createElement('li');
+            li1.textContent = `Lần 1: ${formatVND(depositPerInstallment)} - nộp vào tài khoản BDĐ (Techcombank- Nguyen Thi Thanh Huyen), đồng thời gửi email thông báo tới info@congdongcshalma1.com.`;
+            installmentsList.appendChild(li1);
+
+            const li2 = document.createElement('li');
+            li2.textContent = `Lần 2: ${formatVND(depositPerInstallment)} - nộp cho luật sư`;
+            installmentsList.appendChild(li2);
+
+            const li3 = document.createElement('li');
+            li3.textContent = `Lần 3: ${formatVND(depositPerInstallment)} - nộp cho luật sư`;
+            installmentsList.appendChild(li3);
+
+            resultsDiv.classList.remove('hidden');
+            showMessage('Tính toán thành công!', 'success');
+        };
+
+        // --- Gemini API Integration ---
+        const generatePaymentEmail = async () => {
+            // Get calculated values
+            const contractValue = parseFloat(contractInput.value);
+            const lawyerFee = contractValue * 0.15;
+            const totalDeposit = lawyerFee * 0.04;
+            const depositPerInstallment = totalDeposit / 3;
+
+            // Get user info
+            const ownerName = ownerNameInput.value.trim();
+            const contractId = contractIdInput.value.trim();
+            const apartmentId = apartmentIdInput.value.trim();
+            const contactPhone = contactPhoneInput.value.trim();
+
+            // Check if all necessary fields are filled
+            if (!ownerName || !contractId || !apartmentId || !contactPhone) {
+                showMessage('Vui lòng điền đầy đủ thông tin Chủ Sở Hữu, Mã hợp đồng, Mã căn và Số điện thoại trước khi soạn email.', 'error');
+                return;
+            }
+
+            // Define the prompt for the LLM
+            const userQuery = `Dựa trên các thông tin sau, hãy soạn một email chuyên nghiệp, lịch sự để gửi cho khách hàng, thông báo về chi tiết thanh toán cho hợp đồng.
+            Thông tin hợp đồng:
+            - Họ tên Chủ Sở Hữu: ${ownerName}
+            - Mã hợp đồng: ${contractId}
+            - Mã căn: ${apartmentId}
+            - Số điện thoại liên hệ: ${contactPhone}
+            - Tổng giá trị hợp đồng: ${formatVND(contractValue)}.
+            - Phí thù lao luật sư: ${formatVND(lawyerFee)}.
+            - Tổng tiền cọc: ${formatVND(totalDeposit)}.
+            - Chi tiết 3 lần nộp cọc:
+            - Lần 1: ${formatVND(depositPerInstallment)}, nộp vào tài khoản BDĐ (Techcombank- Nguyen Thi Thanh Huyen) và gửi email thông báo tới info@congdongcshalma1.com.
+            - Lần 2: ${formatVND(depositPerInstallment)}, nộp cho luật sư.
+            - Lần 3: ${formatVND(depositPerInstallment)}, nộp cho luật sư.
+            Sử dụng ngôn ngữ trang trọng và rõ ràng, kết thúc bằng lời cảm ơn.`;
+
+            // Define system instructions
+            const systemPrompt = "Bạn là một trợ lý pháp lý chuyên nghiệp, chuyên soạn thảo các văn bản và email liên quan đến hợp đồng. Hãy đảm bảo nội dung email rõ ràng, đầy đủ và lịch sự.";
+
+            // Show a loading message
+            showMessage('Đang soạn bản nháp email...', 'loading');
+            emailSection.classList.add('hidden');
+            generateEmailBtn.disabled = true;
+
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API call failed with status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (text) {
+                    emailDraft.textContent = text;
+                    emailSection.classList.remove('hidden');
+                    showMessage('Bản nháp email đã sẵn sàng!', 'success');
+                } else {
+                    throw new Error('Không nhận được phản hồi hợp lệ từ API.');
+                }
+            } catch (error) {
+                console.error('Lỗi khi gọi API Gemini:', error);
+                showMessage('Đã xảy ra lỗi khi soạn email. Vui lòng thử lại.', 'error');
+            } finally {
+                generateEmailBtn.disabled = false;
+            }
+        };
+        // --- End of Gemini API Integration ---
+
+        // Function to copy email text to clipboard
+        const copyEmailToClipboard = () => {
+            navigator.clipboard.writeText(emailDraft.textContent)
+                .then(() => showMessage('Đã sao chép email vào khay nhớ tạm.', 'success'))
+                .catch(err => {
+                    console.error('Lỗi khi sao chép:', err);
+                    showMessage('Không thể sao chép email. Vui lòng sao chép thủ công.', 'error');
+                });
+        };
+
+        // Add event listeners
+        calculateBtn.addEventListener('click', calculateFees);
+        generateEmailBtn.addEventListener('click', generatePaymentEmail);
+        copyEmailBtn.addEventListener('click', copyEmailToClipboard);
+
+        // Optional: Add event listener for Enter key on the input field
+        contractInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                calculateFees();
+            }
+        });
+    </script>
+
+</body>
+</html>
